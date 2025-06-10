@@ -25,7 +25,7 @@ args: !!python/object:argparse.Namespace
   flush_logs_every_n_steps: 100
   gpus: 2
   gradient_clip_val: 0
-  hkl_max_index: 3
+  hkl_max_index: 10
   input_channels: 1
   limit_predict_batches: 1.0
   limit_test_batches: 1.0

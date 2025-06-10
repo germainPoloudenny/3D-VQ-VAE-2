@@ -23,7 +23,7 @@ args: !!python/object:argparse.Namespace
   extract_center_cylinder: true
   fast_dev_run: false
   flush_logs_every_n_steps: 100
-  gpus: 2
+  gpus: 1
   gradient_clip_val: 0
   hkl_max_index: 10
   input_channels: 1
@@ -41,8 +41,8 @@ args: !!python/object:argparse.Namespace
   min_steps: null
   move_metrics_to_cpu: false
   multiple_trainloader_mode: max_size_cycle
-  n_bottleneck_blocks: 3
-  n_downscales_per_bottleneck: 2
+  n_bottleneck_blocks: 1
+  n_downscales_per_bottleneck: 1
   n_mix: 2
   n_post_downscale_blocks: 0
   n_post_quantization_blocks: 0

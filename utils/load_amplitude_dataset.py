@@ -23,26 +23,12 @@ class AmplitudeDataset(Dataset):
 
         side = 2 * self.hkl_max_index + 1
 
-        if amplitude.ndim == 1:
-            base = side ** 2
-            if amplitude.numel() % base != 0:
-                raise RuntimeError(
-                    f"Cannot reshape flattened amplitude of length {amplitude.numel()} "
-                    f"into ({side}, {side}, n)."
-                )
-            num_valid_slices = amplitude.numel() // base
-            amplitude = amplitude.reshape(side, side, num_valid_slices)
-        else:
-            if amplitude.shape[0] != side or amplitude.shape[1] != side:
-                raise RuntimeError(
-                    f"Amplitude tensor shape {tuple(amplitude.shape)} incompatible with hkl_max_index={self.hkl_max_index}"
-                )
-            num_valid_slices = amplitude.shape[-1]
+        base = side ** 2
+        num_valid_slices = amplitude.numel() // base
+        amplitude = amplitude.reshape(side, side, num_valid_slices)
 
-        amplitude = amplitude.permute(2, 0, 1)      # → (D, H, W)
-        amplitude = amplitude.unsqueeze(0) # → (1, 1, D, H, W)
-        print(self.hkl_max_index)
-        #print("Final shape:", amplitude.shape)  # Expect (1, 1, D, H, W)
+        amplitude = amplitude.unsqueeze(0)
+        print("amplitude:", amplitude.shape) 
 
         return amplitude, num_valid_slices
 class AmplitudeDataModule(pl.LightningDataModule):

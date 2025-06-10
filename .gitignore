@@ -112,3 +112,6 @@ codes/
 
 # FIXME: This line doesn't work
 !*.job
+
+.gitignore
+lightning_logs/

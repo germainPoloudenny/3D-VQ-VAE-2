@@ -15,7 +15,7 @@ def parse_arguments():
     parser.add_argument("--dataset_path", type=Path, default="/home/gpoloudenny/Projects/crystallography/data/mp20/amplitudes/normalized.h5")
     parser.add_argument("--batch-size", type=int)
     parser.add_argument("--data-key", type=str, default="amplitudes")
-    parser.add_argument("--hkl-max-index", type=int, default=3)
+    parser.add_argument("--hkl-max-index", type=int, default=10)
 
     parser.set_defaults(
         gpus="-1",

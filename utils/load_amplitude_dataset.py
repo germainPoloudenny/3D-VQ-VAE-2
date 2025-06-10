@@ -16,21 +16,35 @@ class AmplitudeDataset(Dataset):
         return self.length
 
     def __getitem__(self, idx: int) -> torch.Tensor:
-        # Open file on every call to be multiprocess friendly
         with h5py.File(self.h5_path, "r") as f:
             amplitude = f[self.data_key][idx]
 
         amplitude = torch.tensor(amplitude, dtype=torch.float32)
 
+        side = 2 * self.hkl_max_index + 1
+
         if amplitude.ndim == 1:
-            side = 2 * self.hkl_max_index + 1
-            amplitude = amplitude.reshape(side, side, side)
+            base = side ** 2
+            if amplitude.numel() % base != 0:
+                raise RuntimeError(
+                    f"Cannot reshape flattened amplitude of length {amplitude.numel()} "
+                    f"into ({side}, {side}, n)."
+                )
+            num_valid_slices = amplitude.numel() // base
+            amplitude = amplitude.reshape(side, side, num_valid_slices)
+        else:
+            if amplitude.shape[0] != side or amplitude.shape[1] != side:
+                raise RuntimeError(
+                    f"Amplitude tensor shape {tuple(amplitude.shape)} incompatible with hkl_max_index={self.hkl_max_index}"
+                )
+            num_valid_slices = amplitude.shape[-1]
 
-        num_valid_slices = amplitude.shape[-1]
-        amplitude = amplitude.unsqueeze(0)
+        amplitude = amplitude.permute(2, 0, 1)      # → (D, H, W)
+        amplitude = amplitude.unsqueeze(0) # → (1, 1, D, H, W)
+        print(self.hkl_max_index)
+        #print("Final shape:", amplitude.shape)  # Expect (1, 1, D, H, W)
+
         return amplitude, num_valid_slices
-
-
 class AmplitudeDataModule(pl.LightningDataModule):
     """PyTorch Lightning datamodule wrapping :class:`AmplitudeDataset`."""
 
@@ -41,7 +55,7 @@ class AmplitudeDataModule(pl.LightningDataModule):
         train_frac: float = 0.95,
         num_workers: int = 6,
         data_key: str = "amplitudes",
-        hkl_max_index: int = 3,
+        hkl_max_index: int = 10,
     ) -> None:
         super().__init__()
         assert 0 <= train_frac <= 1

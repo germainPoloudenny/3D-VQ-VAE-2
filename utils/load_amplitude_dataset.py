@@ -29,7 +29,6 @@ class AmplitudeDataset(Dataset):
 
         amplitude = amplitude.unsqueeze(0)
         print("amplitude:", amplitude.shape) 
-
         return amplitude, num_valid_slices
 class AmplitudeDataModule(pl.LightningDataModule):
     """PyTorch Lightning datamodule wrapping :class:`AmplitudeDataset`."""

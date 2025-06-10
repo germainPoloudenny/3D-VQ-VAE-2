@@ -181,6 +181,7 @@ class VQVAE(pl.LightningModule):
         self.n_post_upscale_blocks = args.n_post_upscale_blocks
         self.n_post_downscale_blocks = args.n_post_downscale_blocks
 
+        # assert len(args.num_embeddings) in (1, args.n_bottleneck_blocks)  # expects list     
         self.num_embeddings = [args.num_embeddings for _ in range(args.n_bottleneck_blocks)]
 
         resblocks = {'regular': FixupResBlock, 'pre-activation': PreActFixupResBlock, 'evonorm': EvonormResBlock}

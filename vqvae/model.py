@@ -174,16 +174,31 @@ class VQVAE(pl.LightningModule):
         self.input_channels = args.input_channels
         self.output_channels = args.input_channels
         self.base_network_channels = args.base_network_channels
-        self.n_bottleneck_blocks = args.n_bottleneck_blocks
-        self.n_blocks_per_bottleneck = args.n_downscales_per_bottleneck
+
+        # Determine the number of feasible downscales for the provided input
+        def _max_downscales(size: int, kernel_size: int = 4, stride: int = 2, padding: int = 1) -> int:
+            count = 0
+            while size >= kernel_size:
+                size = (size + 2 * padding - kernel_size) // stride + 1
+                count += 1
+            return count
+
+        side = 2 * args.hkl_max_index + 1
+        max_downscales = _max_downscales(side)
+
+        self.n_bottleneck_blocks = min(args.n_bottleneck_blocks, max_downscales)
+        self.n_blocks_per_bottleneck = min(
+            args.n_downscales_per_bottleneck,
+            max_downscales // self.n_bottleneck_blocks if self.n_bottleneck_blocks else max_downscales,
+        )
         self.n_pre_quantization_blocks = args.n_pre_quantization_blocks
         self.n_post_quantization_blocks = args.n_post_quantization_blocks
         self.n_post_upscale_blocks = args.n_post_upscale_blocks
         self.n_post_downscale_blocks = args.n_post_downscale_blocks
 
-        assert len(args.num_embeddings) in (1, args.n_bottleneck_blocks)
+        assert len(args.num_embeddings) in (1, self.n_bottleneck_blocks)
         if len(args.num_embeddings) == 1:
-            self.num_embeddings = [args.num_embeddings[0] for _ in range(args.n_bottleneck_blocks)]
+            self.num_embeddings = [args.num_embeddings[0] for _ in range(self.n_bottleneck_blocks)]
         else:
             self.num_embeddings = args.num_embeddings
 
@@ -191,14 +206,14 @@ class VQVAE(pl.LightningModule):
         self.resblock = resblocks[args.block_type]
 
         # num_layers is defined as the longest path through the model
-        n_down = args.n_bottleneck_blocks * args.n_downscales_per_bottleneck
+        n_down = self.n_bottleneck_blocks * self.n_blocks_per_bottleneck
         self.num_layers = (
             2 # input + output layer
             + 2 * n_down # down and up
-            + args.n_pre_quantization_blocks
-            + args.n_post_quantization_blocks
-            + args.n_post_downscale_blocks * n_down
-            + args.n_post_upscale_blocks * n_down
+            + self.n_pre_quantization_blocks
+            + self.n_post_quantization_blocks
+            + self.n_post_downscale_blocks * n_down
+            + self.n_post_upscale_blocks * n_down
             + 1 # pre-activation block
         )
 

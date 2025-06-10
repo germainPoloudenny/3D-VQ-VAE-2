@@ -14,11 +14,27 @@ class AmplitudeDataset(Dataset):
     def __len__(self) -> int:
         return self.length
 
-    def __getitem__(self, idx: int) -> torch.Tensor:
+    def __getitem__(self, idx: int):
+        """Return the amplitude volume and the number of valid slices.
+
+        The :class:`~vqvae.model.VQVAE` expects each data sample to be a tuple of
+        the input tensor and an integer representing the number of valid slices
+        in the depth dimension. The amplitude dataset does not contain any
+        padding so every slice is valid. Returning the depth as ``num_valid_slices``
+        keeps the dataloader compatible with the model interface.
+        """
+
         # Open file on every call to be multiprocess friendly
         with h5py.File(self.h5_path, "r") as f:
             amplitude = f[self.data_key][idx]
-        return torch.tensor(amplitude, dtype=torch.float32)
+
+        tensor = torch.tensor(amplitude, dtype=torch.float32)
+
+        # ``tensor`` has shape (..., depth); the last dimension corresponds to
+        # the number of depth slices.
+        num_valid_slices = tensor.shape[-1]
+
+        return tensor, num_valid_slices
 
 
 class AmplitudeDataModule(pl.LightningDataModule):

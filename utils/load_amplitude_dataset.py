@@ -5,9 +5,10 @@ import pytorch_lightning as pl
 from typing import Optional
 
 class AmplitudeDataset(Dataset):
-    def __init__(self, h5_path: str, data_key: str = "amplitudes"):
+    def __init__(self, h5_path: str, data_key: str = "amplitudes", hkl_max_index: int = 10):
         self.h5_path = h5_path
         self.data_key = data_key
+        self.hkl_max_index = hkl_max_index
         with h5py.File(h5_path, "r") as f:
             self.length = len(f[data_key])
 
@@ -18,7 +19,16 @@ class AmplitudeDataset(Dataset):
         # Open file on every call to be multiprocess friendly
         with h5py.File(self.h5_path, "r") as f:
             amplitude = f[self.data_key][idx]
-        return torch.tensor(amplitude, dtype=torch.float32)
+
+        amplitude = torch.tensor(amplitude, dtype=torch.float32)
+
+        if amplitude.ndim == 1:
+            side = 2 * self.hkl_max_index + 1
+            amplitude = amplitude.reshape(side, side, side)
+
+        num_valid_slices = amplitude.shape[-1]
+        amplitude = amplitude.unsqueeze(0)
+        return amplitude, num_valid_slices
 
 
 class AmplitudeDataModule(pl.LightningDataModule):
@@ -46,6 +56,7 @@ class AmplitudeDataModule(pl.LightningDataModule):
         dataset = AmplitudeDataset(
             self.path,
             data_key=self.data_key,
+            hkl_max_index=self.hkl_max_index,
         )
         train_len = int(len(dataset) * self.train_frac)
         val_len = len(dataset) - train_len

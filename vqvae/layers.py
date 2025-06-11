@@ -512,7 +512,12 @@ class Decoder(nn.Module):
 
     def forward(self, quantizations):
         for i, (quantization, up) in enumerate(reversed(list(zip(quantizations, self.up)))):
-            out = quantization if i == 0 else self.proj[-i](torch.cat([quantization, out], dim=1))
+            if i == 0:
+                out = quantization
+            else:
+                if out.shape[-3:] != quantization.shape[-3:]:
+                    out = F.interpolate(out, size=quantization.shape[-3:], mode="trilinear", align_corners=False)
+                out = self.proj[-i](torch.cat([quantization, out], dim=1))
             out = up(out)
 
         out = self.out(out)

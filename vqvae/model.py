@@ -118,6 +118,8 @@ class VQVAE(pl.LightningModule):
         loc, (commitment_loss, *_) = self(x)
         # loc = F.softplus(loc)
         loc = F.elu(loc)
+        if loc.shape[-3:] != x.shape[-3:]:
+            loc = F.interpolate(loc, size=x.shape[-3:], mode="trilinear", align_corners=False)
 
         masks = torch.zeros_like(x, dtype=torch.bool, requires_grad=False)
         for idx, mask in zip(num_valid_slices, masks):

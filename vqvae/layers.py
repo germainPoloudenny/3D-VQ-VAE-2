@@ -382,7 +382,10 @@ class PreQuantizationConditioning(nn.Module):
         assert self.has_aux is (auxilary is not None)
 
         if self.has_aux:
-            data = self.proj(torch.cat([data, self.upsample(auxilary)], dim=1))
+            aux = self.upsample(auxilary)
+            if aux.shape[-3:] != data.shape[-3:]:
+                aux = F.interpolate(aux, size=data.shape[-3:], mode="trilinear", align_corners=False)
+            data = self.proj(torch.cat([data, aux], dim=1))
 
         return self.pre_q(data)
 

@@ -81,7 +81,7 @@ if __name__ == '__main__':
     parser.add_argument("--output-path", type=Path, default=Path("."))
     parser.add_argument("--output-name", type=str, default='', help="default: takes over the checkpoint name with .lmdb file ext")
     parser.add_argument("--checkpoint-path", type=Path, required=True)
-    parser.add_argument("--dataset-path", type=Path, required=True)
+    parser.add_argument("--dataset-path", type=Path, default="/home/gpoloudenny/Projects/crystallography/data/mp20/")
 
     args = parser.parse_args()
 

@@ -7,12 +7,14 @@ from vqvae.model import VQVAE
 from utils import AmplitudeDataModule
 
 
+#"/home/gpoloudenny/Projects/crystallography/data/mp20"
+
 def parse_arguments():
     parser = ArgumentParser()
     parser = pl.Trainer.add_argparse_args(parser)
     parser = VQVAE.add_model_specific_args(parser)
 
-    parser.add_argument("--dataset_path", type=Path, default="/home/gpoloudenny/Projects/crystallography/data/mp20/amplitudes/normalized.h5")
+    parser.add_argument("--dataset_path", type=Path, default="/home/gpoloudenny/Projects/crystallography/data/mp20/")
     parser.add_argument("--batch-size", type=int)
     parser.add_argument("--data-key", type=str, default="amplitudes")
     parser.add_argument("--hkl-max-index", type=int, default=10)

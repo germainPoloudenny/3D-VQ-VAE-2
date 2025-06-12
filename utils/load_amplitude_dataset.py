@@ -4,22 +4,39 @@ from torch.utils.data import Dataset, DataLoader, random_split
 import pytorch_lightning as pl
 from typing import Optional
 
+
 class AmplitudeDataset(Dataset):
-    def __init__(self, h5_path: str, data_key: str = "amplitudes", hkl_max_index: int = 10):
-        self.h5_path = h5_path
+    def __init__(self, data_path: str, data_key: str = "amplitudes", hkl_max_index: int = 10):
+        self.data_path = data_path
         self.data_key = data_key
         self.hkl_max_index = hkl_max_index
-        with h5py.File(h5_path, "r") as f:
-            self.length = len(f[data_key])
+        self.idx_rotation_file_name = f"{self.data_path}/rotations/idx.h5"
+
+        self.hkl_rotations_file_name = f"{self.data_path}/rotations/hkl_ids.h5"   
+        self.amplitudes_file_name = f"{self.data_path}/amplitudes/normalized.h5" 
+
+        with h5py.File(self.idx_rotation_file_name, "r") as f:
+                self.structure_indices = f["idx"][:]
+                self.rotation_ids = f["rot_id"][:]
+        with h5py.File(self.hkl_rotations_file_name, "r") as f:
+            self.hkl_rotations = f["hkl_ids"][()]
+        with h5py.File(self.idx_rotation_file_name, "r") as f:
+            self.length = len(self.structure_indices)
 
     def __len__(self) -> int:
         return self.length
 
     def __getitem__(self, idx: int) -> torch.Tensor:
-        with h5py.File(self.h5_path, "r") as f:
-            amplitude = f[self.data_key][idx]
+        struct_idx = self.structure_indices[idx]
+        rot_id = self.rotation_ids[idx]
 
-        amplitude = torch.tensor(amplitude, dtype=torch.float32)
+        with h5py.File(self.amplitudes_file_name, "r") as f:
+            amplitudes = f[self.data_key][struct_idx][()]
+
+        rotated_hkl = self.hkl_rotations[rot_id]
+        rotated_amplitudes = amplitudes[rotated_hkl]
+
+        amplitude = torch.tensor(rotated_amplitudes, dtype=torch.float32)
 
         side = 2 * self.hkl_max_index + 1
 
@@ -28,7 +45,7 @@ class AmplitudeDataset(Dataset):
         amplitude = amplitude.reshape(side, side, num_valid_slices)
 
         amplitude = amplitude.unsqueeze(0)
-        print("amplitude:", amplitude.shape) 
+        #print("amplitude:", amplitude.shape) 
         return amplitude, num_valid_slices
 class AmplitudeDataModule(pl.LightningDataModule):
     """PyTorch Lightning datamodule wrapping :class:`AmplitudeDataset`."""

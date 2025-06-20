@@ -5,47 +5,64 @@ import pytorch_lightning as pl
 from typing import Optional
 
 
+from typing import Optional
+
+
 class AmplitudeDataset(Dataset):
-    def __init__(self, data_path: str, data_key: str = "amplitudes", hkl_max_index: int = 10):
+    def __init__(
+        self,
+        data_path: str,
+        data_key: str = "amplitudes",
+        hkl_max_index: int = 10,
+        use_rotations: bool = False
+    ):
         self.data_path = data_path
         self.data_key = data_key
         self.hkl_max_index = hkl_max_index
-        self.idx_rotation_file_name = f"{self.data_path}/rotations/idx.h5"
+        self.use_rotations = use_rotations
+        self.amplitudes_file_name = f"{self.data_path}/amplitudes/normalized.h5"
 
-        self.hkl_rotations_file_name = f"{self.data_path}/rotations/hkl_ids.h5"   
-        self.amplitudes_file_name = f"{self.data_path}/amplitudes/normalized.h5" 
+        if self.use_rotations:
+            self.idx_rotation_file_name = f"{self.data_path}/rotations/idx.h5"
+            self.hkl_rotations_file_name = f"{self.data_path}/rotations/hkl_ids.h5"
 
-        with h5py.File(self.idx_rotation_file_name, "r") as f:
+            with h5py.File(self.idx_rotation_file_name, "r") as f:
                 self.structure_indices = f["idx"][:]
                 self.rotation_ids = f["rot_id"][:]
-        with h5py.File(self.hkl_rotations_file_name, "r") as f:
-            self.hkl_rotations = f["hkl_ids"][()]
-        with h5py.File(self.idx_rotation_file_name, "r") as f:
+
+            with h5py.File(self.hkl_rotations_file_name, "r") as f:
+                self.hkl_rotations = f["hkl_ids"][:]
+
             self.length = len(self.structure_indices)
+        else:
+            with h5py.File(self.amplitudes_file_name, "r") as f:
+                self.length = len(f[self.data_key])
 
     def __len__(self) -> int:
         return self.length
 
     def __getitem__(self, idx: int) -> torch.Tensor:
-        struct_idx = self.structure_indices[idx]
-        rot_id = self.rotation_ids[idx]
+        if self.use_rotations:
+            struct_idx = self.structure_indices[idx]
+            rot_id = self.rotation_ids[idx]
 
-        with h5py.File(self.amplitudes_file_name, "r") as f:
-            amplitudes = f[self.data_key][struct_idx][()]
+            with h5py.File(self.amplitudes_file_name, "r") as f:
+                amplitudes = f[self.data_key][struct_idx][()]
 
-        rotated_hkl = self.hkl_rotations[rot_id]
-        rotated_amplitudes = amplitudes[rotated_hkl]
+            rotated_hkl = self.hkl_rotations[rot_id]
+            rotated_amplitudes = amplitudes[rotated_hkl]
+        else:
+            with h5py.File(self.amplitudes_file_name, "r") as f:
+                rotated_amplitudes = f[self.data_key][idx][()]
 
         amplitude = torch.tensor(rotated_amplitudes, dtype=torch.float32)
 
         side = 2 * self.hkl_max_index + 1
-
         base = side ** 2
         num_valid_slices = amplitude.numel() // base
         amplitude = amplitude.reshape(side, side, num_valid_slices)
-
         amplitude = amplitude.unsqueeze(0)
-        #print("amplitude:", amplitude.shape) 
+
         return amplitude, num_valid_slices
 class AmplitudeDataModule(pl.LightningDataModule):
     """PyTorch Lightning datamodule wrapping :class:`AmplitudeDataset`."""

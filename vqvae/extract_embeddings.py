@@ -8,7 +8,7 @@ import numpy as np
 from tqdm import tqdm
 
 from vqvae.model import VQVAE
-from utils import CTDataModule
+from utils import AmplitudeDataModule
 
 
 GPU = torch.device('cuda')
@@ -46,12 +46,13 @@ def main(args):
     else:
         model = VQVAE()
 
-    datamodule = CTDataModule(
+    datamodule = AmplitudeDataModule(
         path=args.dataset_path,
         batch_size=1,
         train_frac=1,
         num_workers=5,
-        rescale_input=(256,256,128)
+        data_key=args.data_key,
+        hkl_max_index=args.hkl_max_index,
     )
     datamodule.setup()
     dataloader = datamodule.train_dataloader()
@@ -82,7 +83,8 @@ if __name__ == '__main__':
     parser.add_argument("--output-name", type=str, default='', help="default: takes over the checkpoint name with .lmdb file ext")
     parser.add_argument("--checkpoint-path", type=Path, required=True)
     parser.add_argument("--dataset-path", type=Path, default="/home/gpoloudenny/Projects/crystallography/data/mp20/")
-
+    parser.add_argument("--data-key", type=str, default="amplitudes")
+    parser.add_argument("--hkl-max-index", type=int, default=10)
     args = parser.parse_args()
 
     main(args)

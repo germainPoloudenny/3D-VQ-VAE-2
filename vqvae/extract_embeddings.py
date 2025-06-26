@@ -7,8 +7,10 @@ import torch
 import numpy as np
 from tqdm import tqdm
 
+from torch.utils.data import DataLoader
+
 from vqvae.model import VQVAE
-from utils import AmplitudeDataModule
+from utils import AmplitudeDataset
 
 
 GPU = torch.device('cuda')
@@ -46,16 +48,18 @@ def main(args):
     else:
         model = VQVAE()
 
-    datamodule = AmplitudeDataModule(
-        path=args.dataset_path,
-        batch_size=1,
-        train_frac=1,
-        num_workers=5,
+    dataset = AmplitudeDataset(
+        data_path=str(args.dataset_path),
         data_key=args.data_key,
         hkl_max_index=args.hkl_max_index,
     )
-    datamodule.setup()
-    dataloader = datamodule.train_dataloader()
+    dataloader = DataLoader(
+        dataset,
+        batch_size=1,
+        num_workers=5,
+        pin_memory=True,
+        shuffle=False,
+    )
 
     db = lmdb.open(
         get_output_abspath(args.checkpoint_path, args.output_path, args.output_name),
